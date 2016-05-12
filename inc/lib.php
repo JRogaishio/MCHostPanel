@@ -706,8 +706,6 @@ function unique_salt() {
 
 // Securely hash a password
 function encrypt($str, $salt) {
-	$salt = unique_salt();
-	
 	$hash = hash('sha256',$str);
 	$hash = hash('sha256',($str . $salt));
 	
