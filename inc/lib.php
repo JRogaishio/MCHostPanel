@@ -564,11 +564,13 @@ function user_add($user,$pass,$role,$home,$ram=512,$port=25565) {
 	if(is_file('data/users/' . strtolower(clean_alphanum($user)) . '.json')) {
 		return false;
 	}
-
+	$salt = unique_salt();
+	
 	// Create user array
 	$user = array(
 		'user' => clean_alphanum($user),
-		'pass' => bcrypt($pass),
+		'pass' => encrypt($pass, $salt),
+		'salt' => $salt,
 		'role' => $role,
 		'home' => rtrim(strtr($home, "\\", '/'), '/'),
 		'ram'  => intval($ram),
@@ -609,11 +611,12 @@ function user_modify($user,$pass,$role,$home,$ram,$port,$jar='craftbukkit.jar') 
 
 	// check user existence
 	if(is_file('data/users/' . strtolower(clean_alphanum($user)) . '.json')) {
-
+		$salt = unique_salt();
 		// Create user array
 		$user = array(
 			'user' => clean_alphanum($user),
-			'pass' => bcrypt($pass),
+			'pass' => encrypt($pass, $salt),
+			'salt' => $salt,
 			'role' => $role,
 			'home' => $home,
 			'ram'  => intval($ram),
@@ -690,30 +693,30 @@ Y88b  d88P 888     Y88b 888 888 d88P Y88b. Y88..88P Y88b 888 888    888  888 888
                     "Y88P"  888                      "Y88P"                  888                "Y88P"
 */
 
-// Generate a Base-64 salt string
-function base64_salt($len = 22) {
-	$characterList = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+/';
-	$salt = '';
-	for($i=0;$i<$len;$i++)
-		$salt.= $characterList{mt_rand(0,(strlen($characterList)-1))};
-	return $salt;
+// Generate a SHA256 salt string
+function unique_salt() {
+	$salt = bin2hex(openssl_random_pseudo_bytes(32, $strong));
+	
+	//This should NEVER be false unless the system crypto is old or broken
+	if(!$strong)
+		error_log("Insecure hashing algo used in MCHostPanel/inc/lib.php for unique_salt() function. openssl_random_pseudo_bytes is not secure! Please update the system crypto!");
+		
+    return $salt; //Return random hex value
 }
 
-// Securely encrypt a password
-function bcrypt($str) {
-	$salt = strtr(base64_salt(22),'+','.');
-	$work = 13;
-	$salt = sprintf('$2y$%s$%s',$work,$salt);
-	$hash = crypt($str,$salt);
-	if(strlen($hash)>13)
-		return $hash;
-	else
-		return false;
+// Securely hash a password
+function encrypt($str, $salt) {
+	$salt = unique_salt();
+	
+	$hash = hash('sha256',$str);
+	$hash = hash('sha256',($str . $salt));
+	
+	return $hash;
 }
 
-// Verify a bcrypt-encyrpted string
-function bcrypt_verify($str,$hash) {
-	return (crypt($str,$hash) === $hash);
+// Verify a hashed string
+function authenticate($str, $hash, $salt) {
+	return (encrypt($str,$salt) === $hash);
 }
 
 ?>
