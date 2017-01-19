@@ -611,18 +611,15 @@ function user_modify($user,$pass,$role,$home,$ram,$port,$jar='craftbukkit.jar') 
 
 	// check user existence
 	if(is_file('data/users/' . strtolower(clean_alphanum($user)) . '.json')) {
-		$salt = unique_salt();
-		// Create user array
-		$user = array(
-			'user' => clean_alphanum($user),
-			'pass' => encrypt($pass, $salt),
-			'salt' => $salt,
-			'role' => $role,
-			'home' => $home,
-			'ram'  => intval($ram),
-			'port' => intval($port),
-			'jar'  => $jar,
-		);
+		$user = json_decode(file_get_contents('data/users/' . strtolower(clean_alphanum($user) . '.json')), true);
+		//No form for password changes... yet
+		//$salt = unique_salt();
+		//$user['pass'] = encrypt($pass, $salt);
+		$user['role'] = $role;
+		$user['home'] = $home;
+		$user['ram'] = intval($ram);
+		$user['port'] = intval($port);
+		$user['jar'] = $jar;
 
 		// Write to file
 		file_put_contents('data/users/' . strtolower(clean_alphanum($user['user'])) . '.json', json_encode($user));
